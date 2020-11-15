@@ -7,7 +7,8 @@ def read_buffer():
     buffer = b''
     while True:
         data = conn.recv(1024)
-        if data == b'\r':
+        print(data)
+        if b'\r' in data:
             break
         else:
             buffer += data
@@ -22,8 +23,8 @@ SOH = b'01'
 ETX = b'03'
 B = b'42'
 C = b'43'
-BLOCKMODE = SOH + B + ETX + b'42'
-CONVMODE = SOH + C + ETX + b'42'
+BLOCKMODE = SOH + B + ETX + b'20'
+CONVMODE = SOH + C + ETX + b'20'
 
 ESC = b'1B'
 GS_CTRL = b'1D'
@@ -60,37 +61,37 @@ ERASEMEM = ESC + I
 REINIT = ESC + q
 NORMALNOPROTALPHANUM = GS_CTRL + b'20' + b'5F'
 INVISIBLENOPROTALPHANUM = GS_CTRL + b'3D' + b'5F'
-NORMALPROTALPHANUM = GS_CTRL + b'20' + b'7F'
+NORMALPROTALPHANUMFREE = GS_CTRL + b'20' + b'70'
+NORMALPROTALPHANUMFREEMDT = GS_CTRL + b'20' + b'71'
 SETVIDEOBLINKING = SETVIDEO + quote
-
-TESTMSG = b'54455354'
 
 
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind((HOST, PORT))
     s.listen()
     conn, addr = s.accept()
     with conn:
         s.setblocking(0)
         print('Connected by', addr)
-        print("Inital Read")
         data = conn.recv(1024)
         conn.sendall(binascii.unhexlify(CONVMODE))
+        conn.sendall(binascii.unhexlify(UNLOCKKEY))
         conn.sendall(b'ENTER YOUR NAME: ')
+        print('GETTING NAME')
         name = read_buffer()
         print(name)
-        conn.sendall(b'ENTER EMPLOYEE NUMBER: ')
-        emp_number = read_buffer()
-        print(emp_number)
         conn.sendall(binascii.unhexlify(ERASEMEM))
         conn.sendall(binascii.unhexlify(BLOCKMODE))
         #conn.sendall(binascii.unhexlify(ENTERPROTECT))
         conn.sendall(binascii.unhexlify(UNLOCKKEY))
         conn.sendall(b'Normal Text  ')
         conn.sendall(binascii.unhexlify(NORMALNOPROTALPHANUM))
-        conn.sendall(b'No Special Characters  ')
-        conn.sendall(binascii.unhexlify(NORMALPROTALPHANUM))
-        conn.sendall(b'Protected Field  ')
+        conn.sendall(b'No Special Chars  ')
+        conn.sendall(binascii.unhexlify(NORMALPROTALPHANUMFREE))
+        conn.sendall(b'Prot Field MDT OFF  ')
+        conn.sendall(binascii.unhexlify(NORMALPROTALPHANUMFREEMDT))
+        conn.sendall(b'Prot Field MDT ON  ')
         conn.sendall(binascii.unhexlify(INVISIBLENOPROTALPHANUM))
         conn.sendall(b'INVISIBLE Field  ')
         conn.sendall(binascii.unhexlify(NORMALNOPROTALPHANUM))
@@ -98,12 +99,18 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         data = conn.recv(5024)
         print(data)
         #data_hex = binascii.hexlify(data)
-        while True:
-            #print("LOOP READ")
-            #conn.sendall(binascii.unhexlify(READALL))
-            #data = conn.recv(5024)
-            #data_hex = binascii.hexlify(data)
-            #print(data)
-            #conn.sendall(binascii.unhexlify(UNLOCKKEY))
-            #sleep(10)
-            pass
+        conn.sendall(binascii.unhexlify(READALL))
+        data = conn.recv(5024)
+        data_hex = binascii.hexlify(data)
+        print(data)
+        conn.sendall(binascii.unhexlify(UNLOCKKEY))
+        sleep(6)
+        conn.sendall(binascii.unhexlify(READALL))
+        data = conn.recv(5024)
+        data_hex = binascii.hexlify(data)
+        print(data)
+        conn.sendall(binascii.unhexlify(UNLOCKKEY))
+        conn.close()
+        s.shutdown(1)
+        s.close()        
+            

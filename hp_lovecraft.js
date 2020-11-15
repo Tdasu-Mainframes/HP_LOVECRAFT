@@ -5,7 +5,7 @@
 //////////////////////////////
 
 // Target mainframe
-TARGET_HOST = '172.16.9.129';
+TARGET_HOST = '127.0.0.1';
 
 START_FIELD = 0x1D;
 
@@ -50,33 +50,92 @@ W = 0x57;
 X = 0x58;
 SIX = 0x36;
 SQUAREBRACKET = 0x5b;
+LF = 0x0a;
+CF = 0x0d;
+MODE = "S"
 
-MODE = 'S'
+current_log = ""
+var currentdate;
 
+
+function output(data) {
+  console.log(data);
+  current_log += data + "\n";
+}
 
 function onLoad() {
+  current_log += "HP Non Stop at " + TARGET_HOST + "\n"
+  currentdate  = "./logs/" + new Date() + ".log"; 
+  writeFile(currentdate, current_log)
 }
+
 
 function onData(from, to, data) {
   log_debug('Received data from ' + from);
   if(from == TARGET_HOST){
-    console.log('Data From Server: ' + data);
+    output('Data From Server: ' + data);
+    output('PrettyData From Server: ' + prettyprint(data));
     modeSet(data);
     makeVisible(data);
     makeFree(data);
-    if (MODE == "B"){
+    if (MODE = "B"){
       unprotect(data);
     }
+
   }
   else {
-    if (MODE == "C") {
-      var str = String.fromCharCode.apply(null, data);
-      console.log('Data From client: ' + str);
+    output('Data From Client: ' + data);
+    output('PrettyData From Client: ' + prettyprint(data));
+  }
+  writeFile(currentdate, current_log)
+}
+
+
+function prettyprint(data) {
+  var prettydata = "";
+  for (i = 0; i < data.length; i++) {
+    if(data[i] == ESC){
+      prettydata += "[ ESC-"
+      command = data[i + 1];
+      i ++;
+      prettydata += String.fromCharCode(command) ;
+      if(command == SIX){
+        video_attr = data[i + 1];
+        i ++;
+        prettydata += " " + video_attr.toString(2) + " ] ";
+      }
+      else if(command == SQUAREBRACKET){
+        video_attr = data[i + 1];
+        data_attr = data[i + 2];
+        additional_attr = data[i + 3];
+        i += 3;
+        prettydata += " " + video_attr.toString(2) + " ";
+        prettydata += data_attr.toString(2) + " ";
+        prettydata += additional_attr.toString(2) + " ] ";
+      }
+      else {
+        prettydata += " ] ";
+      }
     }
-    else {
-      console.log('Data From client: ' + data);
+    else if (data[i] == START_FIELD){
+      prettydata += "[ GS "
+      video_attr = data[i + 1];
+      data_attr = data[i + 2];
+      i += 2;
+      prettydata += video_attr.toString(2) + " ";
+      prettydata += data_attr.toString(2) + " ] ";
+    }
+    else if (data[i] == SOH){
+      prettydata += " SOH "
+    }
+    else if (data[i] == CF){
+      prettydata += String.fromCharCode(LF);
+    }
+    else{
+      prettydata += String.fromCharCode(data[i]);
     }
   }
+  return prettydata;
 }
 
 function unprotect(data) {

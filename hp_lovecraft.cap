@@ -1,6 +1,6 @@
-set tcp.address 172.16.9.129
+set tcp.address 127.0.0.1
 set tcp.port 6530
-set tcp.proxy.address 172.16.9.129
+set tcp.proxy.address 192.168.1.133
 set tcp.proxy.port 1234
 set tcp.proxy.script hp_lovecraft.js
 tcp.proxy on
